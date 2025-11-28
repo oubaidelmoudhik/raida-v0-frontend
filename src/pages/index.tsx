@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { API_URL } from "../lib/api";
 
 interface Lesson {
   id: number;
@@ -35,7 +36,7 @@ const translations: Translations = {
     selectLesson: "Sélectionner une Leçon",
     subject: "Matière",
     selectSubject: "Sélectionner une matière",
-    period: "period",
+    period: "Period",
     selectPeriod: "Sélectionner une period",
     week: "Semaine",
     selectWeek: "Sélectionner une semaine",
@@ -43,6 +44,9 @@ const translations: Translations = {
     selectSession: "Sélectionner une séance",
     generatePDF: "Générer le PDF",
     generating: "Génération en cours...",
+    previewPDF: "Prévisualiser",
+    analyzing: "Analyse du contenu...",
+    generatingPDF: "Génération du PDF...",
     result: "Résultat",
     pdfGeneratedSuccess: "PDF généré avec succès !",
     downloadPDF: "Télécharger le PDF",
@@ -53,9 +57,12 @@ const translations: Translations = {
     selectLevel: "Sélectionner un niveau",
     connectionError: "Erreur de connexion",
     backendNotRunning: "Assurez-vous que le backend Flask fonctionne sur le port 5000",
-    lessonsLoaded: "leçons chargées avec succès depuis le backend",
+    lessonsLoaded: "leçons chargées avec succès.",
     français: "Français",
+    "langue arabe": "Langue arabe",
     mathématiques: "Mathématiques",
+    generationError: "Erreur lors de la génération",
+    tryAgain: "Réessayer",
   },
   ar: {
     appTitle: "مولد الدروس",
@@ -81,8 +88,9 @@ const translations: Translations = {
     selectLevel: "اختر المستوى",
     connectionError: "خطأ في الاتصال",
     backendNotRunning: "تأكد من تشغيل الخادم على المنفذ 5000",
-    lessonsLoaded: "تم تحميل الدروس بنجاح من الخادم",
+    lessonsLoaded: "تم تحميل الدروس بنجاح.",
     français: "الفرنسية",
+    "langue arabe": "اللغة العربية",
     mathématiques: "الرياضيات",
   },
 };
@@ -96,6 +104,7 @@ export default function HomePage() {
   const [selectedNiveau, setSelectedNiveau] = useState<string>("");
   const [result, setResult] = useState<LessonResponse | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingStep, setLoadingStep] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [language, setLanguage] = useState<Language>("fr");
 
@@ -121,7 +130,7 @@ export default function HomePage() {
   // Fetch available lessons
   useEffect(() => {
     console.log("🔄 Fetching lessons from backend...");
-    fetch("http://localhost:5000/lessons")
+    fetch(`${API_URL}/lessons`)
       .then((res) => {
         console.log("📡 Response status:", res.status);
         if (!res.ok) {
@@ -210,32 +219,52 @@ export default function HomePage() {
 
     try {
       setLoading(true);
+      setError("");
+      setLoadingStep(t("analyzing"));
       console.log("🚀 Generating PDF for lesson:", selectedLesson);
+      
       const res = await fetch(
-        `http://localhost:5000/generate_from_id/${selectedLesson.id}`,
+        `${API_URL}/generate_from_id/${selectedLesson.id}`,
         { method: "POST" }
       );
       
+      setLoadingStep(t("generatingPDF"));
+      
       if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
       }
       
       const data = await res.json();
       console.log("✅ PDF generated:", data);
       setResult(data);
-    } catch (error) {
-      console.error("❌ Error generating PDF:", error);
-      alert("Failed to generate PDF");
     } finally {
       setLoading(false);
+      setLoadingStep("");
     }
   };
+
+interface LessonResponse {
+  title: string;
+  lesson_data: Record<string, unknown>;
+  pdf_path: string;
+  mindmap_pdf_path?: string;
+}
+
+type Language = "fr" | "ar";
 
   const handleDownload = () => {
     if (!result?.pdf_path) return;
     const filename = result.pdf_path.split("/").pop();
     if (!filename) return;
-    window.open(`http://localhost:5000/download_pdf/${filename}`, "_blank");
+    window.open(`${API_URL}/download_pdf/${filename}`, "_blank");
+  };
+
+  const handleDownloadMindMap = () => {
+    if (!result?.mindmap_pdf_path) return;
+    const filename = result.mindmap_pdf_path.split("/").pop();
+    if (!filename) return;
+    window.open(`${API_URL}/download_pdf/${filename}`, "_blank");
   };
 
   // Reset downstream selections when parent changes
@@ -287,7 +316,7 @@ export default function HomePage() {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   {t("appTitle")}
                 </h1>
-                <p className="text-sm text-gray-600 mt-0.5">{t("appSubtitle")}</p>
+                
               </div>
             </div>
 
@@ -456,7 +485,7 @@ export default function HomePage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    <span>{t("generating")}</span>
+                    <span>{loadingStep || t("generating")}</span>
                   </>
                 ) : (
                   <>
@@ -482,7 +511,27 @@ export default function HomePage() {
             </div>
 
             <div className="p-6">
-              {result ? (
+              {error ? (
+                <div className="bg-red-50 border-2 border-red-200 rounded-xl p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center">
+                      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-red-900">{t("generationError")}</h3>
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={handleGenerate}
+                    className="mt-3 w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+                  >
+                    {t("tryAgain")}
+                  </button>
+                </div>
+              ) : result ? (
                 <div className="space-y-6">
                   {/* Success Message */}
                   <div className="bg-green-50 border-2 border-green-200 rounded-xl p-5">
@@ -499,16 +548,30 @@ export default function HomePage() {
                     </div>
                   </div>
 
-                  {/* Download Button */}
-                  <button
-                    onClick={handleDownload}
-                    className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
-                    <span>{t("downloadPDF")}</span>
-                  </button>
+                  {/* Download Buttons */}
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={handleDownload}
+                      className="w-full bg-gradient-to-r from-green-600 to-teal-600 hover:from-green-700 hover:to-teal-700 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      <span>{t("downloadPDF")}</span>
+                    </button>
+
+                    {result.mindmap_pdf_path && (
+                      <button
+                        onClick={handleDownloadMindMap}
+                        className="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span>{language === "fr" ? "Télécharger la Carte Mentale" : "تحميل الخريطة الذهنية"}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <div className="text-center py-16">
