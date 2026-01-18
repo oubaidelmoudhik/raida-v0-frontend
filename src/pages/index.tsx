@@ -248,7 +248,6 @@ interface LessonResponse {
   title: string;
   lesson_data: Record<string, unknown>;
   pdf_path: string;
-  mindmap_pdf_path?: string;
 }
 
 type Language = "fr" | "ar";
@@ -260,12 +259,7 @@ type Language = "fr" | "ar";
     window.open(`${API_URL}/download_pdf/${filename}`, "_blank");
   };
 
-  const handleDownloadMindMap = () => {
-    if (!result?.mindmap_pdf_path) return;
-    const filename = result.mindmap_pdf_path.split("/").pop();
-    if (!filename) return;
-    window.open(`${API_URL}/download_pdf/${filename}`, "_blank");
-  };
+
 
   // Reset downstream selections when parent changes
   const handleMatiereChange = (value: string) => {
@@ -559,18 +553,6 @@ type Language = "fr" | "ar";
                       </svg>
                       <span>{t("downloadPDF")}</span>
                     </button>
-
-                    {result.mindmap_pdf_path && (
-                      <button
-                        onClick={handleDownloadMindMap}
-                        className="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-semibold py-4 px-6 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2"
-                      >
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        <span>{language === "fr" ? "Télécharger la Carte Mentale" : "تحميل الخريطة الذهنية"}</span>
-                      </button>
-                    )}
                   </div>
                 </div>
               ) : (

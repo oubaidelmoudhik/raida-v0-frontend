@@ -8,7 +8,6 @@ export interface CsvData {
 export interface LessonResponse {
   title: string;
   csv_data: CsvData;
-  mindmap: string;
   // The backend may return null when a PDF wasn't generated.
   pdf_path: string | null;
 }
