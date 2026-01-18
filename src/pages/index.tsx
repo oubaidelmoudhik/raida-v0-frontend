@@ -1,6 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+// Link is no longer needed in index.tsx main body as Header handles links
 import { API_URL } from "../lib/api";
+import { translations } from "../lib/translations";
+import Header from "../components/Header";
 
 interface Lesson {
   id: number;
@@ -20,80 +23,9 @@ interface LessonResponse {
 
 type Language = "fr" | "ar";
 
-interface Translations {
-  fr: {
-    [key: string]: string;
-  };
-  ar: {
-    [key: string]: string;
-  };
-}
 
-const translations: Translations = {
-  fr: {
-    appTitle: "Générateur de Leçons",
-    appSubtitle: "Générez de beaux PDFs de leçons",
-    selectLesson: "Sélectionner une Leçon",
-    subject: "Matière",
-    selectSubject: "Sélectionner une matière",
-    period: "Period",
-    selectPeriod: "Sélectionner une period",
-    week: "Semaine",
-    selectWeek: "Sélectionner une semaine",
-    session: "Séance",
-    selectSession: "Sélectionner une séance",
-    generatePDF: "Générer le PDF",
-    generating: "Génération en cours...",
-    previewPDF: "Prévisualiser",
-    analyzing: "Analyse du contenu...",
-    generatingPDF: "Génération du PDF...",
-    result: "Résultat",
-    pdfGeneratedSuccess: "PDF généré avec succès !",
-    downloadPDF: "Télécharger le PDF",
-    noPDFYet: "Aucun PDF généré",
-    noPDFDescription: "Sélectionnez une leçon et cliquez sur \"Générer le PDF\"",
-    selectedLessonDetails: "Détails de la leçon sélectionnée",
-    level: "Niveau",
-    selectLevel: "Sélectionner un niveau",
-    connectionError: "Erreur de connexion",
-    backendNotRunning: "Assurez-vous que le backend Flask fonctionne sur le port 5000",
-    lessonsLoaded: "leçons chargées avec succès.",
-    français: "Français",
-    "langue arabe": "Langue arabe",
-    mathématiques: "Mathématiques",
-    generationError: "Erreur lors de la génération",
-    tryAgain: "Réessayer",
-  },
-  ar: {
-    appTitle: "مولد الدروس",
-    appSubtitle: "إنشاء ملفات PDF جميلة للدروس",
-    selectLesson: "اختر درسًا",
-    subject: "المادة",
-    selectSubject: "اختر مادة",
-    period: "الفترة",
-    selectPeriod: "اختر الفترة",
-    week: "الأسبوع",
-    selectWeek: "اختر أسبوعًا",
-    session: "الحصة",
-    selectSession: "اختر حصة",
-    generatePDF: "إنشاء PDF",
-    generating: "جاري الإنشاء...",
-    result: "النتيجة",
-    pdfGeneratedSuccess: "تم إنشاء PDF بنجاح!",
-    downloadPDF: "تحميل PDF",
-    noPDFYet: "لم يتم إنشاء PDF بعد",
-    noPDFDescription: "اختر درسًا وانقر على \"إنشاء PDF\"",
-    selectedLessonDetails: "تفاصيل الدرس المحدد",
-    level: "المستوى",
-    selectLevel: "اختر المستوى",
-    connectionError: "خطأ في الاتصال",
-    backendNotRunning: "تأكد من تشغيل الخادم على المنفذ 5000",
-    lessonsLoaded: "تم تحميل الدروس بنجاح.",
-    français: "الفرنسية",
-    "langue arabe": "اللغة العربية",
-    mathématiques: "الرياضيات",
-  },
-};
+
+
 
 export default function HomePage() {
   const [lessons, setLessons] = useState<Lesson[]>([]);
@@ -295,38 +227,9 @@ type Language = "fr" | "ar";
   const isRTL = language === "ar";
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 ${isRTL ? "rtl" : "ltr"}`} dir={isRTL ? "rtl" : "ltr"}>
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50 border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
-                <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
-                  {t("appTitle")}
-                </h1>
-                
-              </div>
-            </div>
-
-            {/* Language Toggle */}
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 shadow-md hover:shadow-lg"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-              </svg>
-              <span className="font-semibold">{language === "fr" ? "العربية" : "Français"}</span>
-            </button>
-          </div>
-        </div>
-      </header>
+      <Header language={language} toggleLanguage={toggleLanguage} translations={translations} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Error Banner */}
